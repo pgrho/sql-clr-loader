@@ -9,6 +9,8 @@
     <Company>shipwreck.jp</Company>
     <Copyright>Copyright © 2019 shipwreck.jp</Copyright>
     <Description>Utility to generate SQL CLR statement in runtime</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/pgrho/sql-clr-loader</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'!='net45'">
