@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net4</TargetFramework>
+    <RootNamespace>Shipwreck.Data.TestAssembly</RootNamespace>
+    <AssemblyName>Shipwreck.Data.TestAssembly</AssemblyName>
+  </PropertyGroup>
+
+</Project>

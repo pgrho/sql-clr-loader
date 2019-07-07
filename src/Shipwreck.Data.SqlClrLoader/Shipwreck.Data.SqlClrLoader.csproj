@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net45;netstandard2.0</TargetFrameworks>
+    <AssemblyName>Shipwreck.Data.SqlClrLoader</AssemblyName>
+    <RootNamespace>Shipwreck.Data</RootNamespace>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>shipwreck.jp</Authors>
+    <Company>shipwreck.jp</Company>
+    <Copyright>Copyright © 2019 shipwreck.jp</Copyright>
+    <Description>Utility to generate SQL CLR statement in runtime</Description>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)'!='net45'">
+    <PackageReference Include="System.Data.SqlClient" Version="4.6.1" />
+  </ItemGroup>
+
+</Project>
