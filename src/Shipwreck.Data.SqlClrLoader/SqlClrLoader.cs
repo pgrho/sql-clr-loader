@@ -8,7 +8,7 @@ using System.Text;
 
 namespace Shipwreck.Data
 {
-    public class SqlClrLoader
+    public static class SqlClrLoader
     {
         private static readonly Dictionary<Type, string> _TYPES = new Dictionary<Type, string>()
         {
@@ -47,14 +47,14 @@ namespace Shipwreck.Data
             return sb.ToString();
         }
 
-        public static string GetCreateAssemblyAndFunctionsStatement(Assembly @assembly)
+        public static string GetCreateAssemblyAndFunctionsStatement(Assembly assembly)
         {
             var sb = new StringBuilder();
 
-            AppendCreateAssemblyStatement(sb, @assembly);
+            AppendCreateAssemblyStatement(sb, assembly);
             sb.AppendLine("GO");
 
-            foreach (var t in @assembly.GetExportedTypes())
+            foreach (var t in assembly.GetExportedTypes())
             {
                 foreach (var method in t.GetMethods(BindingFlags.Public | BindingFlags.Static))
                 {
@@ -69,15 +69,15 @@ namespace Shipwreck.Data
             return sb.ToString();
         }
 
-        public static IEnumerable<string> GetCreateAssemblyAndFunctionsStatements(Assembly @assembly)
+        public static IEnumerable<string> GetCreateAssemblyAndFunctionsStatements(Assembly assembly)
         {
             var sb = new StringBuilder();
 
-            AppendCreateAssemblyStatement(sb, @assembly);
+            AppendCreateAssemblyStatement(sb, assembly);
             yield return sb.ToString();
             sb.Clear();
 
-            foreach (var t in @assembly.GetExportedTypes())
+            foreach (var t in assembly.GetExportedTypes())
             {
                 foreach (var method in t.GetMethods(BindingFlags.Public | BindingFlags.Static))
                 {
@@ -92,14 +92,8 @@ namespace Shipwreck.Data
             }
         }
 
-        public static string GetCreateAssemblyStatement(Assembly @assembly)
-        {
-            var sb = new StringBuilder();
-
-            AppendCreateAssemblyStatement(sb, @assembly);
-
-            return sb.ToString();
-        }
+        public static string GetCreateAssemblyStatement(Assembly assembly)
+            => new StringBuilder().AppendCreateAssemblyStatement(assembly).ToString();
 
         public static string GetCreateFunctionStatement(MethodInfo method)
         {
@@ -110,12 +104,12 @@ namespace Shipwreck.Data
             return sb.ToString();
         }
 
-        public static string GetDropAssemblyAndFunctionsStatement(Assembly @assembly)
+        public static string GetDropAssemblyAndFunctionsStatement(Assembly assembly)
         {
-            var n = @assembly.GetName();
+            var n = assembly.GetName();
             var sb = new StringBuilder();
 
-            foreach (var t in @assembly.GetExportedTypes())
+            foreach (var t in assembly.GetExportedTypes())
             {
                 foreach (var method in t.GetMethods(BindingFlags.Public | BindingFlags.Static))
                 {
@@ -130,17 +124,17 @@ namespace Shipwreck.Data
                 }
             }
 
-            AppendDropAssemblyStatement(sb, @assembly);
+            AppendDropAssemblyStatement(sb, assembly);
             sb.AppendLine("GO");
             return sb.ToString();
         }
 
-        public static IEnumerable<string> GetDropAssemblyAndFunctionsStatements(Assembly @assembly)
+        public static IEnumerable<string> GetDropAssemblyAndFunctionsStatements(Assembly assembly)
         {
-            var n = @assembly.GetName();
+            var n = assembly.GetName();
             var sb = new StringBuilder();
 
-            foreach (var t in @assembly.GetExportedTypes())
+            foreach (var t in assembly.GetExportedTypes())
             {
                 foreach (var method in t.GetMethods(BindingFlags.Public | BindingFlags.Static))
                 {
@@ -156,42 +150,41 @@ namespace Shipwreck.Data
                 }
             }
 
-            AppendDropAssemblyStatement(sb, @assembly);
+            AppendDropAssemblyStatement(sb, assembly);
             yield return sb.ToString();
             sb.Clear();
         }
 
-        public static string GetDropAssemblyStatement(Assembly @assembly)
-        {
-            var sb = new StringBuilder();
+        public static string GetDropAssemblyStatement(Assembly assembly)
+            => new StringBuilder().AppendDropAssemblyStatement(assembly).ToString();
 
-            AppendDropAssemblyStatement(sb, @assembly);
-
-            return sb.ToString();
-        }
+        public static string GetDropAssemblyIfExistsStatement(string assembly)
+            => new StringBuilder()
+                .AppendIfExistsStatement(assembly)
+                .Append("    ").AppendDropAssemblyStatement(assembly).ToString();
 
         public static string GetDropFunctionStatement(MethodInfo method)
-        {
-            var sb = new StringBuilder();
+            => new StringBuilder().AppendDropFunctionStatement(method).ToString();
 
-            AppendDropFunctionStatement(sb, method);
-
-            return sb.ToString();
-        }
+        public static string GetDropFunctionIfExistsStatement(string name, bool isScalar = true)
+            => new StringBuilder()
+                .AppendIfExistsStatement(isScalar ? "FS" : "FT", name)
+                .AppendDropFunctionStatement(name).ToString();
 
         #region Append
 
-        public static void AppendCreateAssemblyStatement(StringBuilder sb, Assembly @assembly)
+        public static StringBuilder AppendCreateAssemblyStatement(this StringBuilder sb, Assembly assembly)
         {
-            var n = @assembly.GetName();
+            var n = assembly.GetName();
             sb.Append("CREATE ASSEMBLY [").Append(n.Name).Append("] FROM 0x");
-            foreach (var b in File.ReadAllBytes(@assembly.Location))
+            foreach (var b in File.ReadAllBytes(assembly.Location))
             {
                 sb.Append(b.ToString("X2"));
             }
+            return sb;
         }
 
-        public static void AppendCreateFunctionStatement(StringBuilder sb, MethodInfo method)
+        public static StringBuilder AppendCreateFunctionStatement(this StringBuilder sb, MethodInfo method)
         {
             var attr = method.GetCustomAttribute<SqlFunctionAttribute>()
                 ?? throw new ArgumentException();
@@ -230,25 +223,66 @@ namespace Shipwreck.Data
             sb.AppendLine("AS");
 
             var n = method.DeclaringType.Assembly.GetName();
-            sb.Append("EXTERNAL NAME [").Append(n.Name).Append("].[").Append(method.DeclaringType.FullName).Append("].[").Append(method.Name).AppendLine("]");
+            return sb.Append("EXTERNAL NAME [").Append(n.Name).Append("].[").Append(method.DeclaringType.FullName).Append("].[").Append(method.Name).AppendLine("]");
         }
 
-        public static void AppendDropAssemblyStatement(StringBuilder sb, Assembly @assembly)
-        {
-            var n = @assembly.GetName();
-            sb.AppendLine($"DROP ASSEMBLY [{n.Name}]");
-        }
+        public static StringBuilder AppendDropAssemblyStatement(this StringBuilder sb, Assembly assembly)
+            => sb.AppendDropAssemblyStatement(assembly.GetName().Name);
 
-        public static void AppendDropFunctionStatement(StringBuilder sb, MethodInfo method)
-        {
-            sb.Append("DROP FUNCTION [").Append(method.Name).AppendLine("]");
-        }
+        public static StringBuilder AppendDropAssemblyStatement(this StringBuilder sb, string assemblyName)
+            => sb.AppendLine($"DROP ASSEMBLY [{assemblyName}]");
 
-        public static void AppendConfigureClrEnabledStatement(StringBuilder sb, bool enabled)
+        public static StringBuilder AppendDropFunctionStatement(this StringBuilder sb, MethodInfo method)
+            => sb.AppendDropFunctionStatement(method.Name);
+
+        public static StringBuilder AppendDropFunctionStatement(this StringBuilder sb, string name)
+            => sb.Append("DROP FUNCTION [").Append(name).AppendLine("]");
+
+        public static StringBuilder AppendConfigureClrEnabledStatement(this StringBuilder sb, bool enabled)
         {
             sb.AppendLine("EXEC sp_configure 'clr enabled' , ").Append(enabled ? 1 : 0).Append(";");
-            sb.AppendLine("RECONFIGURE;");
+            return sb.AppendLine("RECONFIGURE;");
         }
+
+        public static StringBuilder AppendIfExistsStatement(this StringBuilder sb, string name)
+            => sb.Append("IF EXISTS(SELECT * FROM sys.assemblies WHERE name = '").Append(name).AppendLine("')");
+
+        public static StringBuilder AppendIfNotExistsStatement(this StringBuilder sb, string name)
+            => sb.Append("IF NOT EXISTS(SELECT * FROM sys.assemblies WHERE name = '").Append(name).AppendLine("')");
+
+        public static StringBuilder AppendIfChangedStatement(this StringBuilder sb, Assembly assembly)
+        {
+            var n = assembly.GetName();
+            sb.Append(
+                "IF NOT EXISTS(SELECT * FROM sys.assembly_files WHERE name = '").Append(n.Name).Append("' AND content = 0x");
+
+            foreach (var b in File.ReadAllBytes(assembly.Location))
+            {
+                sb.Append(b.ToString("X2"));
+            }
+
+            return sb.AppendLine(")");
+        }
+
+        public static StringBuilder AppendIfNotChangedStatement(this StringBuilder sb, Assembly assembly)
+        {
+            var n = assembly.GetName();
+            sb.Append(
+                "IF EXISTS(SELECT * FROM sys.assembly_files WHERE name = '").Append(n.Name).Append("' AND content = 0x");
+
+            foreach (var b in File.ReadAllBytes(assembly.Location))
+            {
+                sb.Append(b.ToString("X2"));
+            }
+
+            return sb.AppendLine(")");
+        }
+
+        public static StringBuilder AppendIfExistsStatement(this StringBuilder sb, string type, string name)
+            => sb.Append("IF EXISTS(SELECT * FROM sys.all_objects WHERE type = '").Append(type).Append("' AND name = '").Append(name).AppendLine("')");
+
+        public static StringBuilder AppendIfNotExistsStatement(this StringBuilder sb, string type, string name)
+            => sb.Append("IF NOT EXISTS(SELECT * FROM sys.all_objects WHERE type = '").Append(type).Append("' AND name = '").Append(name).AppendLine("')");
 
         #endregion Append
     }

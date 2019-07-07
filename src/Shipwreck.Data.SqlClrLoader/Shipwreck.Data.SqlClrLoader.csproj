@@ -9,6 +9,7 @@
     <Company>shipwreck.jp</Company>
     <Copyright>Copyright © 2019 shipwreck.jp</Copyright>
     <Description>Utility to generate SQL CLR statement in runtime</Description>
+    <Version>1.0.1</Version>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/pgrho/sql-clr-loader</PackageProjectUrl>
   </PropertyGroup>
