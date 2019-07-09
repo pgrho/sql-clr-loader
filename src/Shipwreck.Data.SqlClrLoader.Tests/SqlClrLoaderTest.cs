@@ -40,5 +40,43 @@ namespace Shipwreck.Data
                 }
             }
         }
+
+        [Fact]
+        public async Task TestSqlClrIfExists()
+        {
+            using (var db = new SqlClrLoaderTestDbContext())
+            {
+                db.Database.Delete();
+                db.Database.CreateIfNotExists();
+
+                using (var cmd = db.Database.Connection.CreateCommand())
+                {
+                    await cmd.Connection.OpenAsync();
+                    foreach (var s in SqlClrLoader.GetCreateAssemblyAndFunctionsStatements(typeof(Functions).Assembly))
+                    {
+                        cmd.CommandText = s;
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+
+                using (var cmd = db.Database.Connection.CreateCommand())
+                {
+                    cmd.CommandText = SqlClrLoader.GetDropFunctionIfExistsStatement(nameof(Functions.NegateBoolean));
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                using (var cmd = db.Database.Connection.CreateCommand())
+                {
+                    cmd.CommandText = SqlClrLoader.GetDropFunctionIfExistsStatement(nameof(Functions.NegateBoolean));
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                using (var cmd = db.Database.Connection.CreateCommand())
+                {
+                    cmd.CommandText = SqlClrLoader.GetDropAssemblyIfExistsStatement(typeof(Functions).Assembly.GetName().Name);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+            }
+        }
     }
 }
