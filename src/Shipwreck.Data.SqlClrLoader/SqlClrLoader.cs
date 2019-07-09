@@ -95,11 +95,11 @@ namespace Shipwreck.Data
         public static string GetCreateAssemblyStatement(Assembly assembly)
             => new StringBuilder().AppendCreateAssemblyStatement(assembly).ToString();
 
-        public static string GetCreateFunctionStatement(MethodInfo method)
+        public static string GetCreateFunctionStatement(MethodInfo method, string functionName = null, string schema = null)
         {
             var sb = new StringBuilder();
 
-            AppendCreateFunctionStatement(sb, method);
+            AppendCreateFunctionStatement(sb, method, functionName: functionName, schema: schema);
 
             return sb.ToString();
         }
@@ -166,10 +166,10 @@ namespace Shipwreck.Data
         public static string GetDropFunctionStatement(MethodInfo method)
             => new StringBuilder().AppendDropFunctionStatement(method).ToString();
 
-        public static string GetDropFunctionIfExistsStatement(string name, bool isScalar = true)
+        public static string GetDropFunctionIfExistsStatement(string name, bool isScalar = true, string schema = null)
             => new StringBuilder()
                 .AppendIfExistsStatement(isScalar ? "FS" : "FT", name)
-                .AppendDropFunctionStatement(name).ToString();
+                .AppendDropFunctionStatement(name, schema: schema).ToString();
 
         #region Append
 
@@ -184,12 +184,17 @@ namespace Shipwreck.Data
             return sb;
         }
 
-        public static StringBuilder AppendCreateFunctionStatement(this StringBuilder sb, MethodInfo method)
+        public static StringBuilder AppendCreateFunctionStatement(this StringBuilder sb, MethodInfo method, string functionName = null, string schema = null)
         {
             var attr = method.GetCustomAttribute<SqlFunctionAttribute>()
                 ?? throw new ArgumentException();
 
-            sb.Append("CREATE FUNCTION [").Append(method.Name).AppendLine("]");
+            sb.Append("CREATE FUNCTION ");
+            if (!string.IsNullOrEmpty(schema))
+            {
+                sb.Append("[").Append(schema).Append("].");
+            }
+            sb.Append("[").Append(functionName ?? method.Name).AppendLine("]");
             sb.AppendLine("(");
             {
                 var ps = method.GetParameters();
@@ -235,8 +240,15 @@ namespace Shipwreck.Data
         public static StringBuilder AppendDropFunctionStatement(this StringBuilder sb, MethodInfo method)
             => sb.AppendDropFunctionStatement(method.Name);
 
-        public static StringBuilder AppendDropFunctionStatement(this StringBuilder sb, string name)
-            => sb.Append("DROP FUNCTION [").Append(name).AppendLine("]");
+        public static StringBuilder AppendDropFunctionStatement(this StringBuilder sb, string functionName, string schema = null)
+        {
+            sb.Append("DROP FUNCTION ");
+            if (!string.IsNullOrEmpty(schema))
+            {
+                sb.Append("[").Append(schema).Append("].");
+            }
+            return sb.Append("[").Append(functionName).AppendLine("]");
+        }
 
         public static StringBuilder AppendConfigureClrEnabledStatement(this StringBuilder sb, bool enabled)
         {
