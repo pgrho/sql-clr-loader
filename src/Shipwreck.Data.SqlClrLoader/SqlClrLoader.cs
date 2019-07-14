@@ -47,11 +47,11 @@ namespace Shipwreck.Data
             return sb.ToString();
         }
 
-        public static string GetCreateAssemblyAndFunctionsStatement(Assembly assembly)
+        public static string GetCreateAssemblyAndFunctionsStatement(Assembly assembly, PermissionSet permissionSet = PermissionSet.Default)
         {
             var sb = new StringBuilder();
 
-            AppendCreateAssemblyStatement(sb, assembly);
+            AppendCreateAssemblyStatement(sb, assembly, permissionSet);
             sb.AppendLine("GO");
 
             foreach (var t in assembly.GetExportedTypes())
@@ -69,11 +69,11 @@ namespace Shipwreck.Data
             return sb.ToString();
         }
 
-        public static IEnumerable<string> GetCreateAssemblyAndFunctionsStatements(Assembly assembly)
+        public static IEnumerable<string> GetCreateAssemblyAndFunctionsStatements(Assembly assembly, PermissionSet permissionSet = PermissionSet.Default)
         {
             var sb = new StringBuilder();
 
-            AppendCreateAssemblyStatement(sb, assembly);
+            AppendCreateAssemblyStatement(sb, assembly, permissionSet);
             yield return sb.ToString();
             sb.Clear();
 
@@ -92,8 +92,8 @@ namespace Shipwreck.Data
             }
         }
 
-        public static string GetCreateAssemblyStatement(Assembly assembly)
-            => new StringBuilder().AppendCreateAssemblyStatement(assembly).ToString();
+        public static string GetCreateAssemblyStatement(Assembly assembly, PermissionSet permissionSet = PermissionSet.Default)
+            => new StringBuilder().AppendCreateAssemblyStatement(assembly, permissionSet).ToString();
 
         public static string GetCreateFunctionStatement(MethodInfo method, string functionName = null, string schema = null)
         {
@@ -106,7 +106,6 @@ namespace Shipwreck.Data
 
         public static string GetDropAssemblyAndFunctionsStatement(Assembly assembly)
         {
-            var n = assembly.GetName();
             var sb = new StringBuilder();
 
             foreach (var t in assembly.GetExportedTypes())
@@ -131,7 +130,6 @@ namespace Shipwreck.Data
 
         public static IEnumerable<string> GetDropAssemblyAndFunctionsStatements(Assembly assembly)
         {
-            var n = assembly.GetName();
             var sb = new StringBuilder();
 
             foreach (var t in assembly.GetExportedTypes())
@@ -173,13 +171,27 @@ namespace Shipwreck.Data
 
         #region Append
 
-        public static StringBuilder AppendCreateAssemblyStatement(this StringBuilder sb, Assembly assembly)
+        public static StringBuilder AppendCreateAssemblyStatement(this StringBuilder sb, Assembly assembly, PermissionSet permissionSet = PermissionSet.Default)
         {
             var n = assembly.GetName();
             sb.Append("CREATE ASSEMBLY [").Append(n.Name).Append("] FROM 0x");
             foreach (var b in File.ReadAllBytes(assembly.Location))
             {
                 sb.Append(b.ToString("X2"));
+            }
+            switch (permissionSet)
+            {
+                case PermissionSet.Safe:
+                    sb.Append(" WITH PERMISSION_SET = SAFE");
+                    break;
+
+                case PermissionSet.ExternalAccess:
+                    sb.Append(" WITH PERMISSION_SET = EXTERNAL_ACCESS");
+                    break;
+
+                case PermissionSet.Unsafe:
+                    sb.Append(" WITH PERMISSION_SET = UNSAFE");
+                    break;
             }
             return sb;
         }

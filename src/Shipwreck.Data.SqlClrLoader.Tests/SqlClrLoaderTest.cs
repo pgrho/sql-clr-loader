@@ -1,4 +1,5 @@
 using Shipwreck.Data.TestAssembly;
+using System.Data.SqlClient;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -111,6 +112,38 @@ namespace Shipwreck.Data
                     cmd.CommandText = SqlClrLoader.GetDropAssemblyIfExistsStatement(typeof(Functions).Assembly.GetName().Name);
                     await cmd.ExecuteNonQueryAsync();
                 }
+            }
+        }
+
+        [Theory]
+        [InlineData(PermissionSet.Safe)]
+        [InlineData(PermissionSet.ExternalAccess)]
+        [InlineData(PermissionSet.Unsafe)]
+        public async Task TestPermissionSet(PermissionSet ps)
+        {
+            try
+            {
+                using (var db = new SqlClrLoaderTestDbContext())
+                {
+                    db.Database.Delete();
+                    db.Database.CreateIfNotExists();
+
+                    using (var cmd = db.Database.Connection.CreateCommand())
+                    {
+                        await cmd.Connection.OpenAsync();
+                        cmd.CommandText = SqlClrLoader.GetCreateAssemblyStatement(typeof(Functions).Assembly, ps);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+
+                    using (var cmd = db.Database.Connection.CreateCommand())
+                    {
+                        cmd.CommandText = SqlClrLoader.GetDropAssemblyIfExistsStatement(typeof(Functions).Assembly.GetName().Name);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+            }
+            catch (SqlException ex) when (ex.Number == 10327)
+            {
             }
         }
     }
